@@ -1,9 +1,7 @@
-# Raw third-party data dump (39 MB) — see README for the download link
-proteinbase_all_data_*.csv
-
-# Downloaded Boltz-2 complex structures (~500 MB, 1,029 files)
-cif/
-*.cif
+# Rosetta input PDBs — derived from structures/*.cif by cif_to_pdb() in
+# code/rosetta_ia.py, 400 MB, regenerated automatically on a run.
+pdb/
+*.pdb
 
 # Python
 __pycache__/

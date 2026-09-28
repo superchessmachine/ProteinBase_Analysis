@@ -98,17 +98,24 @@ leakage the ceiling is 0.64. See §1 of `FINDINGS.md`.
 
 ## Reproducing
 
-Two inputs are not committed (see `.gitignore`):
+This repo is self-contained — the source export and all structures are included.
 
-1. **`proteinbase_all_data_28_01_2026.csv`** — the ProteinBase export (5,253 designs, 39 MB),
-   dated 2026-01-28. Place it in the repo root.
-2. **Complex structures** — not redistributed here. Each design's `evaluations` field carries a
-   public URL for its Boltz-2 predicted complex (`boltz2_structure_prediction`); `code/labels.py`
-   extracts them and they download into `cif/`.
+| input | where | size |
+|---|---|---|
+| `proteinbase_all_data_28_01_2026.csv` | repo root | 39 MB |
+| `structures/*.cif` | 1,029 Boltz-2 predicted complexes | 446 MB |
+
+**Provenance.** Both come from Adaptyv Bio's ProteinBase. The structures were fetched from
+Adaptyv's public bucket (`proteinbase-pub.t3.storage.dev`) using the URLs carried in each
+design's `evaluations` field; `designs.csv` preserves each one in `structure_url`. They are
+**Boltz-2 predictions, not experimental structures** — for a non-binder the modelled complex
+does not exist, which is the ceiling on everything computed from them.
+
+The only thing not committed is `pdb/` — the two-chain PDBs Rosetta needs, derived from the
+CIFs by `cif_to_pdb()` and regenerated automatically.
 
 ```bash
 python code/labels.py        # target-matched labels + structure URLs
-# download the 1,029 CIFs listed by labels.py into cif/
 python code/cluster.py       # sequence-family assignment (for grouped CV)
 python code/run_mech2.py     # 67 mechanistic descriptors over all complexes
 python code/model_lasso.py   # nested family-grouped CV + L1 logistic
@@ -117,6 +124,10 @@ python code/rosetta_ia.py    # PyRosetta InterfaceAnalyzer (needs the pyrosetta 
 python code/compare.py       # Rosetta vs hand-built head-to-head
 python code/plots3.py        # figures 01-07
 python code/plots4.py        # figures 08-12 (comparison)
+python code/plots5.py        # figure 09_1
+python code/plots6.py        # figure 13
+python code/consolidate.py   # build the four published tables
+python code/make_dict.py     # regenerate DATA_DICTIONARY.md
 python code/make_report.py && python code/add_rosetta_section.py
 ```
 
