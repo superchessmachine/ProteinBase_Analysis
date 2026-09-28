@@ -128,12 +128,15 @@ h = [plt.Line2D([], [], marker='o', ls='', color=HIT, ms=4.6,
                 markeredgecolor='white', markeredgewidth=.3),
      plt.Line2D([], [], marker='o', ls='', color=NO, ms=4.6, alpha=.7),
      plt.Rectangle((0, 0), 1, 1, color=NO, alpha=.16)]
+H = fig.get_figheight()
+fig.suptitle('Evaluation Metrics', x=.5, ha='center', y=1 - .30 / H, va='top',
+             fontsize=13.5, weight='bold', color=INK)
 fig.legend(h, [f'Binder (n = {int(mb.sum())})',
                f'Non-binder (n = {int((y==0).sum())})',
                'Non-binder density along x'],
-           fontsize=7.4, ncol=3, loc='upper right',
-           bbox_to_anchor=(.995, 1.0), handletextpad=.5, columnspacing=1.6)
-fig.tight_layout(rect=[0, 0, 1, .980], h_pad=2.0, w_pad=.9)
+           fontsize=7.6, ncol=3, loc='upper center',
+           bbox_to_anchor=(.5, 1 - .60 / H), handletextpad=.5, columnspacing=2.2)
+fig.tight_layout(rect=[0, 0, 1, 1 - 1.00 / H], h_pad=2.0, w_pad=.9)
 fig.savefig(f'{OUT}/09_1_metric_vs_affinity.png')
 plt.close(fig)
 
