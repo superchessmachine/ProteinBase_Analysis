@@ -1,0 +1,12 @@
+{
+ "n_designs": 1029,
+ "n_binders": 101,
+ "base_rate": 0.09815354713313897,
+ "n_families": 643,
+ "n_physics": 66,
+ "n_rosetta": 29,
+ "n_boltz2": 13,
+ "composite_intercept": -0.7694294301429195,
+ "composite_C": 1.0,
+ "composite_terms_kept": 25
+}

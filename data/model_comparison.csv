@@ -1,0 +1,10 @@
+model,features,AUROC,AUPRC,P_at_10,P_at_20,P_at_50,validation
+Physics curated + min ipSAE,27,0.7095425059747354,0.3291742857759858,0.9,0.75,0.48,nested family-grouped CV
+"Physics, curated (26 terms)",26,0.7093611300785251,0.3276589916265447,0.9,0.7,0.5,nested family-grouped CV
+Physics curated + ros_sc + min ipSAE,28,0.6965901331512461,0.3251707945183232,0.9,0.7,0.48,nested family-grouped CV
+Physics curated + Rosetta sc,27,0.7094464834414475,0.3250822699147319,0.8,0.7,0.5,nested family-grouped CV
+Physics curated + Boltz-2 confidence,29,0.716765534312052,0.3225024932470841,0.7,0.7,0.48,nested family-grouped CV
+"Physics, all (66 terms)",66,0.6911488562649368,0.3098604680285357,0.8,0.75,0.44,nested family-grouped CV
+Physics + Rosetta combined,84,0.6454207920792079,0.215011897879749,,,,nested family-grouped CV
+Rosetta InterfaceAnalyzer only,18,0.6514382041652441,0.18515055148477627,,,,nested family-grouped CV
+Random baseline,0,0.5,0.09815354713313897,0.09815354713313897,0.09815354713313897,0.09815354713313897,-

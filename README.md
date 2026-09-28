@@ -39,39 +39,56 @@ The Nipah glycoprotein-G round is the only target with enough paired structures 
 ## Layout
 
 ```
-FINDINGS.md    the report — read this
-figures/       01 single-descriptor AUROC      07 affinity ranking (negative result)
-               02 descriptor distributions     08 Rosetta metric AUROC
-               03 ROC + PR (honest CV)         09 correlation scatters, mine vs Rosetta
-               04 leakage                      10 method comparison (AUROC / AUPRC)
-               05 L1 coefficients              11 ROC + PR, all methods
-               06 enrichment / packing map     12 head-to-head, same concept
-data/          mech2_scored.csv         per-design descriptors, labels, out-of-fold scores
-               univariate_benchmark.csv AUROC/AUPRC per descriptor + bootstrap CIs
-               lasso_coefficients.csv   the fitted sparse model
-               affinity_*.csv           K_D regression outputs
-               rosetta_results.csv      Rosetta InterfaceAnalyzer metrics
-               rosetta_univariate.csv   Rosetta metric AUROC/AUPRC
-               head_to_head.csv         mine vs Rosetta, matched concepts
-               compare_scored.csv       merged table + all model scores
-               labels_fam.csv           sequence-family assignments
-code/          mech.py, mech2.py        descriptor engines
-               run_mech2.py             parallel driver
-               model_lasso.py           nested grouped CV + L1
-               affinity.py              K_D regression + confound check
-               rosetta_ia.py            PyRosetta InterfaceAnalyzer driver
-               compare.py               Rosetta vs mine head-to-head
-               plots3.py, plots4.py, make_report.py
+FINDINGS.md          the report - read this
+DATA_DICTIONARY.md   every column in every table, documented
+figures/             01-13 (see below)
+data/                designs.csv                 1,029 designs x 125 cols
+                     metrics_benchmark.csv       97 metrics, AUROC/AUPRC + CIs
+                     model_comparison.csv        9 fitted models
+                     composite_coefficients.csv  the deliverable model
+                     dataset_summary.json
+code/                mech.py, mech2.py           descriptor engines
+                     run_mech2.py                parallel driver
+                     rosetta_ia.py               PyRosetta InterfaceAnalyzer
+                     model_lasso.py              nested grouped CV + L1
+                     best_composite.py           model selection
+                     compare.py                  Rosetta vs physics
+                     affinity.py                 K_D regression + confound check
+                     consolidate.py              builds the published tables
+                     plots3/4/5/6.py, make_report.py, make_dict.py
 ```
+
+## Figures
+
+| | |
+|---|---|
+| 01 | single physics descriptor AUROC |
+| 02 | descriptor distributions |
+| 03 | ROC + PR, honest CV |
+| 04 | the leakage trap |
+| 05 | L1 coefficients |
+| 06 | enrichment / packing map |
+| 07 | affinity ranking (negative result) |
+| 08 | Rosetta metric AUROC |
+| 09 | correlation scatters, physics vs Rosetta |
+| 09_1 | every metric vs experimental affinity (PNAS style) |
+| 10 | method comparison |
+| 11 | ROC + PR, all methods |
+| 12 | head-to-head, same concept |
+| 13 | the best composite, standalone |
+
 
 ## Headline
 
-| | AUROC | AUPRC (base 0.098) |
+| | AUROC | AUPRC (random 0.098) |
 |---|---|---|
-| L1 logistic, curated physics (mine) | 0.709 | 0.328 |
+| **L1 logistic, 26 curated physics terms** | **0.709** | **0.328** |
 | L1 logistic, Rosetta InterfaceAnalyzer | 0.651 | 0.185 |
-| best single descriptor (mine, Coulomb) | 0.685 | 0.188 |
-| best single Rosetta metric (`sc_value`) | 0.678 | 0.200 |
+| best single metric (Rosetta `sc_value`) | 0.678 | 0.200 |
+| best single physics descriptor (Coulomb) | 0.685 | 0.188 |
+| best single Boltz-2 metric (min ipSAE) | 0.638 | 0.198 |
+
+**P@10 = 0.90** against a 9.8% base rate: submit ten, expect nine binders.
 
 Top-10 submissions: **90% hit rate** vs 9.8% unfiltered.
 
