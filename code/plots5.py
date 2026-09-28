@@ -41,6 +41,11 @@ HIT = OKABE_BLUE; NO = OKABE_VERM
 
 D = pd.read_csv('compare_scored.csv')
 HH = pd.read_csv('head_to_head.csv')
+# Boltz-2 confidence metrics ship in the ProteinBase CSV itself
+AIM = ['boltz2_iptm', 'boltz2_ptm', 'boltz2_ipsae', 'boltz2_min_ipsae']
+F = pd.read_pickle('flat.pkl')
+F = F[F.target == 'nipah-glycoprotein-g'][['id'] + AIM].drop_duplicates('id')
+D = D.merge(F, on='id', how='left')
 D['kd'] = pd.to_numeric(D.kd, errors='coerce')
 y = D.y.values
 
@@ -67,14 +72,18 @@ PRETTY = {
  'ros_sc': 'Shape complementarity', 'ros_dSASA': 'Buried area (Å²)',
  'ros_dhSASA': 'Apolar buried area (Å²)', 'ros_packstat': 'Packstat',
  'ros_dG': 'ΔG separated', 'ros_dG_dSASA': 'ΔG / buried area',
- 'ros_hb_E': 'H-bond energy', 'ros_nres': 'Interface residues'}
+ 'ros_hb_E': 'H-bond energy', 'ros_nres': 'Interface residues',
+ 'boltz2_iptm': 'ipTM', 'boltz2_ptm': 'pTM',
+ 'boltz2_ipsae': 'ipSAE', 'boltz2_min_ipsae': 'min ipSAE'}
+SUFFIX = {'Rosetta': ' (Rosetta)', 'Boltz-2': ' (Boltz-2)', 'Mine': ''}
 def lab(c, src):
     t = PRETTY.get(c, c.replace('ros_', '').replace('_', ' '))
-    return t + (' (Rosetta)' if src == 'Rosetta' else '')
+    return t + SUFFIX[src]
 
 cand = []
 for _, r in HH.iterrows():
     cand += [(r.mine, 'Mine'), (r.rosetta, 'Rosetta')]
+cand += [(c, 'Boltz-2') for c in AIM]
 rows = []
 for col, who in cand:
     v = pd.to_numeric(D[col], errors='coerce')
@@ -89,7 +98,7 @@ for col, who in cand:
 P = pd.DataFrame(rows).sort_values('AUPRC', ascending=False).reset_index(drop=True)
 
 ncol = 4; nrow = int(np.ceil(len(P) / ncol))
-fig, axes = plt.subplots(nrow, ncol, figsize=(7.0, 8.6))  # PNAS 2-col x < 9 in
+fig, axes = plt.subplots(nrow, ncol, figsize=(7.0, 9.0))  # PNAS 2-col x max height
 rng = np.random.default_rng(0)
 DENS_TOP = PKD_MIN * 0.80
 
