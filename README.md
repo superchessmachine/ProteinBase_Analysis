@@ -33,33 +33,45 @@ The Nipah glycoprotein-G round is the only target with enough paired structures 
 
 3. Benchmarked each descriptor against experimental binding, then fitted **L1-penalised logistic
    regression** under **nested family-grouped cross-validation**.
+4. Ran **Rosetta `InterfaceAnalyzer`** (PyRosetta 2026.39, sidechains repacked) over the same
+   1,029 complexes and compared head-to-head — see §7 of `FINDINGS.md`.
 
 ## Layout
 
 ```
 FINDINGS.md    the report — read this
-figures/       01 single-descriptor AUROC      05 L1 coefficients
-               02 descriptor distributions     06 enrichment / packing map
-               03 ROC + PR (honest CV)         07 affinity ranking (negative result)
-               04 leakage
+figures/       01 single-descriptor AUROC      07 affinity ranking (negative result)
+               02 descriptor distributions     08 Rosetta metric AUROC
+               03 ROC + PR (honest CV)         09 correlation scatters, mine vs Rosetta
+               04 leakage                      10 method comparison (AUROC / AUPRC)
+               05 L1 coefficients              11 ROC + PR, all methods
+               06 enrichment / packing map     12 head-to-head, same concept
 data/          mech2_scored.csv         per-design descriptors, labels, out-of-fold scores
                univariate_benchmark.csv AUROC/AUPRC per descriptor + bootstrap CIs
                lasso_coefficients.csv   the fitted sparse model
                affinity_*.csv           K_D regression outputs
+               rosetta_results.csv      Rosetta InterfaceAnalyzer metrics
+               rosetta_univariate.csv   Rosetta metric AUROC/AUPRC
+               head_to_head.csv         mine vs Rosetta, matched concepts
+               compare_scored.csv       merged table + all model scores
                labels_fam.csv           sequence-family assignments
 code/          mech.py, mech2.py        descriptor engines
                run_mech2.py             parallel driver
                model_lasso.py           nested grouped CV + L1
                affinity.py              K_D regression + confound check
-               plots2.py, make_report.py
+               rosetta_ia.py            PyRosetta InterfaceAnalyzer driver
+               compare.py               Rosetta vs mine head-to-head
+               plots3.py, plots4.py, make_report.py
 ```
 
 ## Headline
 
 | | AUROC | AUPRC (base 0.098) |
 |---|---|---|
-| L1 logistic, curated physics | 0.709 | 0.328 |
-| best single descriptor | 0.685 | 0.188 |
+| L1 logistic, curated physics (mine) | 0.709 | 0.328 |
+| L1 logistic, Rosetta InterfaceAnalyzer | 0.651 | 0.185 |
+| best single descriptor (mine, Coulomb) | 0.685 | 0.188 |
+| best single Rosetta metric (`sc_value`) | 0.678 | 0.200 |
 
 Top-10 submissions: **90% hit rate** vs 9.8% unfiltered.
 
@@ -77,28 +89,36 @@ Two inputs are not committed (see `.gitignore`):
    public URL for its Boltz-2 predicted complex (`boltz2_structure_prediction`); `code/labels.py`
    extracts them and they download into `cif/`.
 
-Then:
-
 ```bash
-python code/labels.py        # extract target-matched labels + structure URLs
+python code/labels.py        # target-matched labels + structure URLs
 # download the 1,029 CIFs listed by labels.py into cif/
 python code/cluster.py       # sequence-family assignment (for grouped CV)
-python code/run_mech2.py     # 67 mechanistic descriptors over all complexes (parallel)
-python code/model_lasso.py   # nested family-grouped CV + L1 logistic model
+python code/run_mech2.py     # 67 mechanistic descriptors over all complexes
+python code/model_lasso.py   # nested family-grouped CV + L1 logistic
 python code/affinity.py      # K_D regression + design-format confound check
-python code/plots2.py        # figures
-python code/make_report.py   # regenerate FINDINGS.md
+python code/rosetta_ia.py    # PyRosetta InterfaceAnalyzer (needs the pyrosetta env)
+python code/compare.py       # Rosetta vs hand-built head-to-head
+python code/plots3.py        # figures 01-07
+python code/plots4.py        # figures 08-12 (comparison)
+python code/make_report.py && python code/add_rosetta_section.py
 ```
 
-Requires `numpy`, `scipy`, `pandas`, `scikit-learn`, `matplotlib`. No structural-biology
-packages needed — SASA, H-bonding, cavity detection and shape complementarity are implemented
-directly in `code/mech.py`.
+Core analysis needs only `numpy`, `scipy`, `pandas`, `scikit-learn`, `matplotlib` — SASA,
+H-bonding, cavity detection and shape complementarity are implemented directly in `code/mech.py`.
+The Rosetta comparison additionally needs PyRosetta (free for academic use):
+
+```bash
+conda create -n pyrosetta python=3.11 numpy pandas scipy scikit-learn
+pip install pyrosetta-installer
+python -c "import pyrosetta_installer; pyrosetta_installer.install_pyrosetta(serialization=True)"
+```
 
 ## Caveats
 
-- Everything here is calibrated on **one target** (Nipah glycoprotein-G) — the only round in
-  ProteinBase with enough paired structures and labels. Transfer to other targets is untested.
+- Calibrated on **one target** (Nipah glycoprotein-G) — the only ProteinBase round with enough
+  paired structures and labels. Transfer to other targets is untested.
 - Descriptors are computed on **predicted** complexes. For a non-binder that complex does not
-  exist, which is the ceiling on what any scoring function can do with this input.
-- Benchmark with **sequence-family-grouped splits**. Plain k-fold inflates AUPRC by up to ~1.9×
-  on this dataset.
+  exist, which caps what any scoring function can achieve on this input.
+- Benchmark with **sequence-family-grouped splits**. Plain k-fold inflates AUPRC by up to ~1.9×.
+- Rosetta `InterfaceAnalyzer` must be run with sidechain repacking on these models; unrepacked
+  `dG_separated` is clash-dominated (+319 vs +25 for the same structure).

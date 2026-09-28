@@ -214,7 +214,122 @@ affinity predictor and been worthless in practice.
 
 ---
 
-## 7. How to use this
+## 7. Rosetta InterfaceAnalyzer comparison
+
+PyRosetta 2026.39, `InterfaceAnalyzerMover` over the same 1,029 complexes, with sidechains
+repacked in both the complex (`pack_input`) and the separated state (`pack_separated`).
+
+> **Repacking is not optional here.** On the raw predicted models `dG_separated` came back at
+> **+319** for the ephrin-B2 control — pure `fa_rep` clash, physically meaningless. Repacking
+> drops it to **+25** for ~1 extra second per structure. Boltz-2 models carry enough steric
+> strain that unrepacked Rosetta energies are unusable.
+
+### Which Rosetta metrics track binding
+
+![rosetta metrics](figures/08_rosetta_metric_auroc.png)
+
+| Rosetta metric | direction | AUROC | 95% CI | AUPRC | lift |
+|---|---|---|---|---|---|
+| `sc_value` (shape complementarity) | higher=better | 0.678 | 0.619–0.740 | 0.200 | 2.04× |
+| `interface_hbonds` | higher=better | 0.645 | 0.588–0.699 | 0.155 | 1.58× |
+| `total_hb_E` | lower=better | 0.637 | 0.582–0.689 | 0.146 | 1.49× |
+| `dG_separated/dSASA` | lower=better | 0.630 | 0.567–0.686 | 0.164 | 1.67× |
+| `crossterm_interface_energy` | lower=better | 0.627 | 0.563–0.685 | 0.231 | 2.36× |
+| `crossterm/dSASA` | lower=better | 0.626 | 0.562–0.683 | 0.163 | 1.66× |
+| `dG_separated` | lower=better | 0.614 | 0.553–0.673 | 0.164 | 1.67× |
+| `dSASA_int` | higher=better | 0.611 | 0.559–0.659 | 0.124 | 1.26× |
+| `dSASA_hydrophobic` | higher=better | 0.607 | 0.554–0.656 | 0.121 | 1.24× |
+| `total_hb_E/dSASA` | lower=better | 0.596 | 0.544–0.649 | 0.118 | 1.20× |
+| `delta_unsat_hbonds/dSASA` | lower=better | 0.594 | 0.543–0.646 | 0.116 | 1.18× |
+| `separated_SASA` | higher=better | 0.583 | 0.524–0.641 | 0.126 | 1.29× |
+| `hbond_E_fraction` | lower=better | 0.580 | 0.512–0.640 | 0.152 | 1.55× |
+| `complex_total_energy` | lower=better | 0.580 | 0.522–0.639 | 0.134 | 1.36× |
+| `complexed_SASA` | higher=better | 0.562 | 0.504–0.621 | 0.127 | 1.29× |
+| `interface_nres` | higher=better | 0.562 | 0.513–0.613 | 0.115 | 1.18× |
+| `packstat` | higher=better | 0.509 | 0.453–0.566 | 0.097 | 0.99× |
+| `delta_unsat_hbonds` | lower=better | 0.503 | 0.451–0.559 | 0.094 | 0.96× |
+
+**`sc_value` is Rosetta's best metric here (AUROC 0.678)** — the only one that
+clearly beats my equivalent. `crossterm_interface_energy` has the best AUPRC (0.231,
+2.36× lift) despite a middling AUROC, meaning it is sharp at the top of the ranking.
+
+**The two metrics you nominated are the two that fail in Rosetta's implementation:**
+
+- `delta_unsat_hbonds` — **AUROC 0.503**. No signal whatsoever.
+- `packstat` — **AUROC 0.509**. No signal whatsoever.
+
+My versions of both concepts do work (0.611
+and 0.645). The difference is
+normalisation and definition, not the idea — see below.
+
+### Same concept, two implementations
+
+![head to head](figures/12_head_to_head.png)
+![correlation scatters](figures/09_correlation_scatters.png)
+
+| concept | mine | Rosetta | AUROC mine | AUROC Rosetta | agreement ρ |
+|---|---|---|---|---|---|
+| binding energy / area | `ddg_per_bsa` | `ros_dG_dSASA` | **0.668** | 0.630 | 0.426 |
+| binding energy | `ddg_est` | `ros_dG` | **0.666** | 0.614 | -0.163 |
+| packing / voids | `void_loose` | `ros_packstat` | **0.645** | 0.509 | -0.055 |
+| H-bond energy | `hb_energy` | `ros_hb_E` | **0.622** | 0.637 | 0.644 |
+| buried surface area | `bsa` | `ros_dSASA` | **0.612** | 0.611 | 0.998 |
+| buried unsatisfied polars | `buns_loose_density` | `ros_unsat_per_dSASA` | **0.611** | 0.594 | 0.293 |
+| apolar burial | `bsa_apolar` | `ros_dhSASA` | **0.607** | 0.607 | 0.989 |
+| shape complementarity | `sc` | `ros_sc` | **0.585** | 0.678 | 0.494 |
+| interface residues | `ifc_res` | `ros_nres` | **0.581** | 0.562 | 0.961 |
+| buried unsatisfied polars (raw) | `buns_loose` | `ros_unsat` | **0.531** | 0.503 | 0.629 |
+
+Three distinct outcomes:
+
+1. **Validation.** Buried surface area agrees at **ρ = 0.998**, apolar burial at 0.989, interface
+   residue count at 0.961, with identical AUROC. My from-scratch Shrake-Rupley SASA reproduces
+   Rosetta's to within rounding — the geometric core of this work is independently confirmed.
+
+2. **Rosetta wins on shape complementarity.** Real Lawrence-Colman `sc_value` scores 0.678 against
+   my proxy's 0.585, and they agree only at ρ = 0.494. My implementation measures complementarity
+   on the van der Waals surface rather than the solvent-excluded surface, which is why my values
+   sit near 0.26 where Rosetta reports 0.66. **Use Rosetta's `sc_value`, not mine.**
+
+3. **Mine wins on energy and packing, and the two disagree about what they measure.**
+   - `ddg_est` vs `dG_separated`: **ρ = -0.163** — anti-correlated, and mine discriminates better
+     (0.666 vs 0.614). Rosetta's dG retains residual clash even after repacking; my softened LJ
+     plus Eisenberg-McLachlan desolvation is more forgiving of imperfect geometry.
+   - `void_loose` vs `packstat`: **ρ = -0.055** — no relationship at all. These are simply
+     different quantities. Mine reaches 0.645, Rosetta's 0.509.
+   - Normalising unsatisfied polars by interface area lifts AUROC from 0.531 to 0.611 in my
+     implementation and from 0.503 to 0.594 in Rosetta's. **The raw count is the wrong variable
+     in both packages; divide by buried area.**
+
+### Full models
+
+![method comparison](figures/10_method_comparison.png)
+![all methods](figures/11_all_methods_roc_pr.png)
+
+L1 logistic, nested family-grouped CV:
+
+| feature set | AUROC | AUPRC | P@10 | P@20 | P@50 |
+|---|---|---|---|---|---|
+| Rosetta only (18 metrics) | 0.651 | 0.185 | 0.30 | 0.30 | 0.24 |
+| **Mine only (66 descriptors)** | **0.691** | **0.311** | **0.80** | **0.75** | **0.46** |
+| Both combined | 0.645 | 0.215 | 0.40 | 0.35 | 0.34 |
+| random | 0.500 | 0.098 | — | — | — |
+
+The hand-built set beats Rosetta's on every measure, and **combining them is worse than mine
+alone**. That is not a claim that the Rosetta features are noise — it is small-sample instability:
+101 positives against 84 candidate features means L1 selection varies between folds, and the inner
+CV picks a penalty that does not transfer. With this many labels, a smaller feature set is the
+safer choice.
+
+### What to actually use
+
+Take `sc_value` from Rosetta, keep everything else from the hand-built set, and normalise any
+unsatisfied-polar count by interface area. Rosetta adds a real shape-complementarity term that I
+cannot match; it does not add usable packing or energy terms on predicted structures.
+
+---
+
+## 8. How to use this
 
 1. **Filter with the sparse physics model, not with ipTM.** ipTM ranks at the base rate on this
    data. The physics composite is a genuine multiple-fold enrichment at the top of the list.
@@ -222,7 +337,10 @@ affinity predictor and been worthless in practice.
    first or you will overestimate it by roughly a factor of two.
 3. **Expression is a hard gate.** Across the full dataset, P(binds | did not express) = 0.000
    (n=260). Nanobody and scFv formats express worst (78–89%); miniproteins 96.7%.
-4. **Don't filter on void volume alone** — on this data it tracks interface size, not packing defects.
+4. **Take `sc_value` from Rosetta** — it is the one interface term Rosetta computes better than anything here (0.678 vs 0.585).
+5. **Normalise unsatisfied polars by buried area.** The raw count carries no signal in either implementation (Rosetta's is AUROC 0.503); divided by area both work.
+6. **Don't filter on `packstat`** — AUROC 0.509 on this data.
+7. **Don't filter on void volume alone** — on this data it tracks interface size, not packing defects.
 
 ## Reproducing
 
