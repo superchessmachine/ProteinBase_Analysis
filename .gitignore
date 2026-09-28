@@ -1,0 +1,12 @@
+# Raw third-party data dump (39 MB) — see README for the download link
+proteinbase_all_data_*.csv
+
+# Downloaded Boltz-2 complex structures (~500 MB, 1,029 files)
+cif/
+*.cif
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store

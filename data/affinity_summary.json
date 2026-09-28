@@ -1,0 +1,8 @@
+{
+ "n": 100,
+ "fam": 68,
+ "best_model": "Ridge (CV alpha)",
+ "pearson": 0.5026101637379526,
+ "spearman": 0.5383258325832583,
+ "n_kept": 7
+}
